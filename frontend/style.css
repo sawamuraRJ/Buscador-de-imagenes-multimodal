@@ -1,0 +1,52 @@
+:root {
+  --fondo: #eef2f6;
+  --tinta: #14213d;
+  --tinta-suave: #5b6b85;
+  --borde: #c9d3e0;
+  --acento: #0f766e;
+  --acento-hover: #0b5c56;
+  --tarjeta: #ffffff;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; min-height: 100vh;
+  background: var(--fondo); color: var(--tinta);
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+.contenedor { max-width: 820px; margin: 0 auto; padding: 32px 20px 64px; }
+nav { display: flex; gap: 8px; margin-bottom: 28px; }
+nav a {
+  padding: 8px 16px; border-radius: 8px; text-decoration: none;
+  color: var(--tinta-suave); border: 1px solid transparent;
+}
+nav a.activo { color: var(--tinta); background: var(--tarjeta); border-color: var(--borde); font-weight: 600; }
+nav a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+h1 { font-size: 1.6rem; margin: 0 0 20px; }
+.busqueda { display: flex; gap: 10px; margin-bottom: 28px; }
+.busqueda input[type="text"], .busqueda input[type="file"] {
+  flex: 1; padding: 12px 14px; font-size: 1rem;
+  border: 1px solid var(--borde); border-radius: 8px; background: var(--tarjeta);
+}
+button {
+  padding: 12px 22px; font-size: 1rem; font-weight: 600; cursor: pointer;
+  color: #fff; background: var(--acento); border: 0; border-radius: 8px;
+}
+button:hover { background: var(--acento-hover); }
+button:disabled { opacity: .6; cursor: wait; }
+.vista-previa { display: none; max-height: 140px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--borde); }
+.grilla { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.tarjeta {
+  position: relative; aspect-ratio: 1; overflow: hidden; display: block;
+  background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 8px;
+}
+.tarjeta img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tarjeta span {
+  position: absolute; right: 8px; bottom: 8px; padding: 2px 8px; border-radius: 6px;
+  font-size: .8rem; color: #fff; background: rgba(20, 33, 61, .78);
+}
+.mensaje { color: var(--tinta-suave); grid-column: 1 / -1; }
+.error { color: #b42318; }
+@media (max-width: 560px) {
+  .grilla { grid-template-columns: repeat(2, 1fr); }
+  .busqueda { flex-direction: column; }
+}

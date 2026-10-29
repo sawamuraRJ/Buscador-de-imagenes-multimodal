@@ -1,0 +1,18 @@
+# Entorno y cache
+venv/
+.venv/
+__pycache__/
+*.pyc
+.vscode/
+.DS_Store
+
+# Datos pesados (se regeneran con los scripts)
+data/images/*
+data/thumbs/*
+data/index/*
+!data/images/.gitkeep
+!data/thumbs/.gitkeep
+!data/index/.gitkeep
+*.zip
+*.faiss
+*.npy

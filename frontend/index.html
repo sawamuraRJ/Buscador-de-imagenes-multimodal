@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Buscar por texto</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="contenedor">
+    <nav>
+      <a href="index.html" class="activo">Buscar por texto</a>
+      <a href="image.html">Buscar por imagen</a>
+    </nav>
+    <h1>Buscar imágenes por texto</h1>
+    <div class="busqueda">
+      <input type="text" id="consulta" placeholder="a sleeping cat" aria-label="Consulta de búsqueda">
+      <button id="buscar">Search</button>
+    </div>
+    <div class="grilla" id="resultados"></div>
+  </div>
+  <script src="app.js"></script>
+  <script>
+    const boton = document.getElementById("buscar");
+    const input = document.getElementById("consulta");
+    function buscar() {
+      const q = input.value.trim();
+      if (!q) return mostrarMensaje("Escribe qué imagen quieres encontrar.", true);
+      pedir(`/search/text?q=${encodeURIComponent(q)}&k=6`, {}, boton);
+    }
+    boton.addEventListener("click", buscar);
+    input.addEventListener("keydown", e => { if (e.key === "Enter") buscar(); });
+  </script>
+</body>
+</html>

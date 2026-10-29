@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Buscar por imagen</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="contenedor">
+    <nav>
+      <a href="index.html">Buscar por texto</a>
+      <a href="image.html" class="activo">Buscar por imagen</a>
+    </nav>
+    <h1>Buscar imágenes por similitud</h1>
+    <div class="busqueda">
+      <input type="file" id="archivo" accept="image/*" aria-label="Subir imagen de tu computadora">
+      <button id="buscar">Search</button>
+    </div>
+    <img id="vista" class="vista-previa" alt="Imagen seleccionada">
+    <div class="grilla" id="resultados"></div>
+  </div>
+  <script src="app.js"></script>
+  <script>
+    const boton = document.getElementById("buscar");
+    const archivo = document.getElementById("archivo");
+    const vista = document.getElementById("vista");
+    archivo.addEventListener("change", () => {
+      const f = archivo.files[0];
+      if (f) { vista.src = URL.createObjectURL(f); vista.style.display = "block"; }
+    });
+    boton.addEventListener("click", () => {
+      if (!archivo.files.length) return mostrarMensaje("Sube una imagen de tu computadora.", true);
+      const form = new FormData();
+      form.append("file", archivo.files[0]);
+      pedir("/search/image?k=6", { method: "POST", body: form }, boton);
+    });
+  </script>
+</body>
+</html>
