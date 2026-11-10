@@ -11,6 +11,11 @@ class SearchEngine:
     def __init__(self):
         if not config.INDEX_PATH.exists():
             raise FileNotFoundError("No existe el índice. Ejecuta: python -m src.build_index")
+        if not config.MODEL_INFO_PATH.exists():
+            raise FileNotFoundError("El índice no registra su modelo. Reconstrúyelo con: python -m src.build_index")
+        model_info = json.loads(config.MODEL_INFO_PATH.read_text())
+        if model_info.get("model") != config.EMBEDDING_MODEL:
+            raise ValueError("El índice pertenece a otro modelo. Reconstrúyelo con: python -m src.build_index")
         self.index = faiss.read_index(str(config.INDEX_PATH))
         if hasattr(self.index, "hnsw"):
             self.index.hnsw.efSearch = config.HNSW_EF_SEARCH

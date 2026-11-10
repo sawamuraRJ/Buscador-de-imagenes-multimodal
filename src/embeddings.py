@@ -1,10 +1,10 @@
-"""Extracción de embeddings con Open CLIP (texto e imagen en el mismo espacio)."""
+"""Extracción de embeddings multimodales con EmbeddingGemma 2."""
 from functools import lru_cache
 
 import numpy as np
-import open_clip
 import torch
 from PIL import Image
+from sentence_transformers import SentenceTransformer
 
 from . import config
 
@@ -12,29 +12,39 @@ from . import config
 class Embedder:
     def __init__(self):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model, _, self.preprocess = open_clip.create_model_and_transforms(
-            config.MODEL_NAME, pretrained=config.PRETRAINED
+        dtype = (
+            torch.bfloat16
+            if torch.cuda.is_available() and torch.cuda.is_bf16_supported()
+            else torch.float32
         )
-        self.model = self.model.to(self.device).eval()
-        self.tokenizer = open_clip.get_tokenizer(config.MODEL_NAME)
+        self.model = SentenceTransformer(
+            config.EMBEDDING_MODEL,
+            device=self.device,
+            model_kwargs={"torch_dtype": dtype},
+            config_kwargs={"audio_config": None},
+        )
 
-    @torch.no_grad()
-    def embed_image_batch(self, batch: torch.Tensor) -> np.ndarray:
-        """batch: tensor (N,3,H,W) ya preprocesado -> (N,D) float32 normalizado."""
-        feats = self.model.encode_image(batch.to(self.device))
-        feats = feats / feats.norm(dim=-1, keepdim=True)
-        return feats.cpu().numpy().astype("float32")
+    def embed_image_batch(self, images: list[Image.Image]) -> np.ndarray:
+        """Codifica una lista de imágenes -> vectores float32 normalizados."""
+        inputs = [{"image": image.convert("RGB")} for image in images]
+        return self.model.encode(
+            inputs,
+            batch_size=len(inputs),
+            normalize_embeddings=True,
+            convert_to_numpy=True,
+            show_progress_bar=False,
+        ).astype("float32")
 
     def embed_image(self, img: Image.Image) -> np.ndarray:
-        tensor = self.preprocess(img.convert("RGB")).unsqueeze(0)
-        return self.embed_image_batch(tensor)
+        return self.embed_image_batch([img])
 
-    @torch.no_grad()
     def _embed_text_uncached(self, text: str) -> np.ndarray:
-        tokens = self.tokenizer([text]).to(self.device)
-        feats = self.model.encode_text(tokens)
-        feats = feats / feats.norm(dim=-1, keepdim=True)
-        return feats.cpu().numpy().astype("float32")
+        return self.model.encode(
+            text,
+            normalize_embeddings=True,
+            convert_to_numpy=True,
+            show_progress_bar=False,
+        )[None, :].astype("float32")
 
     def embed_text(self, text: str) -> np.ndarray:
         return _cached_text(self, text.strip().lower()).copy()

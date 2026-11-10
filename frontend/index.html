@@ -3,33 +3,86 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Buscar por texto</title>
+  <meta name="theme-color" content="#090a0d">
+  <title>Explora imágenes</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="contenedor">
-    <nav>
-      <a href="index.html" class="activo">Buscar por texto</a>
-      <a href="image.html">Buscar por imagen</a>
-    </nav>
-    <h1>Buscar imágenes por texto</h1>
-    <div class="busqueda">
-      <input type="text" id="consulta" placeholder="a sleeping cat" aria-label="Consulta de búsqueda">
-      <button id="buscar">Search</button>
-    </div>
-    <div class="grilla" id="resultados"></div>
-  </div>
+  <main class="contenedor">
+    <header class="barra-superior">
+      <a class="marca" href="index.html" aria-label="Inicio"><span class="marca-icono">◈</span> imagen<span class="marca-punto">.</span></a>
+      <span class="estado"><i></i> BÚSQUEDA INTELIGENTE</span>
+    </header>
+
+    <section class="hero">
+      <p class="sobre-titulo">TU COLECCIÓN, A UN CLIC</p>
+      <h1>Encuentra la imagen<br><span>que tienes en mente.</span></h1>
+      <p class="introduccion">Busca por descripción o encuentra imágenes visualmente parecidas a una que ya tienes.</p>
+
+      <div class="panel-busqueda">
+        <div class="selector-modo" role="tablist" aria-label="Modo de búsqueda">
+          <button class="modo activo" id="modo-texto" role="tab" aria-selected="true" aria-controls="panel-texto"><span>⌕</span> Buscar con texto</button>
+          <button class="modo" id="modo-imagen" role="tab" aria-selected="false" aria-controls="panel-imagen"><span>▧</span> Buscar por imagen</button>
+        </div>
+        <div id="panel-texto" class="panel-modo" role="tabpanel" aria-labelledby="modo-texto">
+          <div class="campo-texto"><span aria-hidden="true">⌕</span><input type="text" id="consulta" placeholder="Ejemplo: un perro corriendo en la playa" aria-label="Describe la imagen que buscas"><button id="buscar-texto" class="boton-buscar">Buscar <span>→</span></button></div>
+          <p class="ayuda">Describe lo que quieres encontrar, en español o inglés.</p>
+        </div>
+        <div id="panel-imagen" class="panel-modo" role="tabpanel" aria-labelledby="modo-imagen" hidden>
+          <label class="zona-carga" for="archivo"><span class="carga-icono">↑</span><strong>Elige una imagen para buscar</strong><span>JPG, PNG o WEBP</span><input type="file" id="archivo" accept="image/*"></label>
+          <div class="archivo-elegido" id="archivo-elegido" hidden><img id="vista" alt="Vista previa de la imagen elegida"><span id="nombre-archivo"></span><button id="buscar-imagen" class="boton-buscar">Buscar similares <span>→</span></button></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="seccion-resultados" aria-live="polite"><div class="titulo-resultados"><div><p class="sobre-titulo">EXPLORAR</p><h2>Resultados</h2></div><span class="nota-resultados">Las coincidencias más relevantes</span></div><div class="grilla" id="resultados"><div class="estado-inicial"><span>✳</span><p>Tu próxima búsqueda empieza aquí.</p></div></div></section>
+    <footer>Impulsado por búsqueda visual con inteligencia artificial</footer>
+  </main>
   <script src="app.js"></script>
   <script>
-    const boton = document.getElementById("buscar");
+    const tabTexto = document.getElementById("modo-texto");
+    const tabImagen = document.getElementById("modo-imagen");
+    const panelTexto = document.getElementById("panel-texto");
+    const panelImagen = document.getElementById("panel-imagen");
     const input = document.getElementById("consulta");
-    function buscar() {
+    const botonTexto = document.getElementById("buscar-texto");
+    const botonImagen = document.getElementById("buscar-imagen");
+    const archivo = document.getElementById("archivo");
+    const elegida = document.getElementById("archivo-elegido");
+    const vista = document.getElementById("vista");
+
+    function cambiarModo(imagen) {
+      tabTexto.classList.toggle("activo", !imagen);
+      tabImagen.classList.toggle("activo", imagen);
+      tabTexto.setAttribute("aria-selected", String(!imagen));
+      tabImagen.setAttribute("aria-selected", String(imagen));
+      panelTexto.hidden = imagen;
+      panelImagen.hidden = !imagen;
+    }
+    tabTexto.addEventListener("click", () => cambiarModo(false));
+    tabImagen.addEventListener("click", () => cambiarModo(true));
+
+    function buscarTexto() {
       const q = input.value.trim();
       if (!q) return mostrarMensaje("Escribe qué imagen quieres encontrar.", true);
-      pedir(`/search/text?q=${encodeURIComponent(q)}&k=6`, {}, boton);
+      pedir(`/search/text?q=${encodeURIComponent(q)}&k=6`, {}, botonTexto);
     }
-    boton.addEventListener("click", buscar);
-    input.addEventListener("keydown", e => { if (e.key === "Enter") buscar(); });
+    botonTexto.addEventListener("click", buscarTexto);
+    input.addEventListener("keydown", e => { if (e.key === "Enter") buscarTexto(); });
+
+    archivo.addEventListener("change", () => {
+      const f = archivo.files[0];
+      if (!f) return;
+      vista.src = URL.createObjectURL(f);
+      document.getElementById("nombre-archivo").textContent = f.name;
+      elegida.hidden = false;
+    });
+    botonImagen.addEventListener("click", () => {
+      if (!archivo.files.length) return mostrarMensaje("Elige una imagen para buscar imágenes similares.", true);
+      const form = new FormData();
+      form.append("file", archivo.files[0]);
+      pedir("/search/image?k=6", { method: "POST", body: form }, botonImagen);
+    });
   </script>
 </body>
 </html>

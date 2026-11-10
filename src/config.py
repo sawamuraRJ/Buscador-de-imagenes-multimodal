@@ -9,13 +9,12 @@ INDEX_PATH = INDEX_DIR / "faiss.index"
 PATHS_PATH = INDEX_DIR / "paths.json"
 FRONTEND_DIR = ROOT / "frontend"
 
-# Modelo Open CLIP (puedes cambiarlo por uno más grande sin tocar el resto)
-MODEL_NAME = "ViT-B-32"
-PRETRAINED = "laion2b_s34b_b79k"
+# EmbeddingGemma 2: embeddings multimodales de texto e imagen en el mismo espacio.
+EMBEDDING_MODEL = "google/embeddinggemma-2"
+MODEL_INFO_PATH = INDEX_DIR / "model.json"
 
 # Procesamiento por lotes
-BATCH_SIZE = 64
-NUM_WORKERS = 2
+BATCH_SIZE = 8
 
 # Índice HNSW (aproximado): M = vecinos por nodo, EF = calidad de construcción/búsqueda
 HNSW_M = 32

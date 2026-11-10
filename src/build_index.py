@@ -9,9 +9,7 @@ import json
 
 import faiss
 import numpy as np
-import torch
 from PIL import Image
-from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 from . import config
@@ -23,28 +21,20 @@ def list_images():
     return sorted(p.relative_to(config.IMAGES_DIR).as_posix() for p in files)
 
 
-class ImageDataset(Dataset):
-    def __init__(self, rel_paths, preprocess):
-        self.rel_paths = rel_paths
-        self.preprocess = preprocess
-
-    def __len__(self):
-        return len(self.rel_paths)
-
-    def __getitem__(self, i):
-        rel = self.rel_paths[i]
-        try:
-            img = Image.open(config.IMAGES_DIR / rel).convert("RGB")
-            thumb_path = (config.THUMBS_DIR / rel).with_suffix(".jpg")
-            if not thumb_path.exists():
-                thumb_path.parent.mkdir(parents=True, exist_ok=True)
-                t = img.copy()
-                t.thumbnail((config.THUMB_SIZE, config.THUMB_SIZE))
-                t.save(thumb_path, "JPEG", quality=85)
-            return self.preprocess(img), True
-        except Exception as e:  # imagen corrupta
-            print(f"[aviso] se omite {rel}: {e}")
-            return torch.zeros(3, 224, 224), False
+def load_image(rel):
+    """Carga una imagen y crea su miniatura; devuelve None si está dañada."""
+    try:
+        img = Image.open(config.IMAGES_DIR / rel).convert("RGB")
+        thumb_path = (config.THUMBS_DIR / rel).with_suffix(".jpg")
+        if not thumb_path.exists():
+            thumb_path.parent.mkdir(parents=True, exist_ok=True)
+            thumb = img.copy()
+            thumb.thumbnail((config.THUMB_SIZE, config.THUMB_SIZE))
+            thumb.save(thumb_path, "JPEG", quality=85)
+        return img
+    except Exception as e:
+        print(f"[aviso] se omite {rel}: {e}")
+        return None
 
 
 def make_index(dim: int):
@@ -63,6 +53,11 @@ def main():
         raise SystemExit(f"No hay imágenes en {config.IMAGES_DIR}. Ejecuta scripts/download_dataset.py")
 
     if args.add and config.INDEX_PATH.exists():
+        if not config.MODEL_INFO_PATH.exists():
+            raise SystemExit("El índice actual no tiene modelo registrado. Reconstrúyelo sin --add.")
+        model_info = json.loads(config.MODEL_INFO_PATH.read_text())
+        if model_info.get("model") != config.EMBEDDING_MODEL:
+            raise SystemExit("El índice se creó con otro modelo. Reconstrúyelo sin --add.")
         index = faiss.read_index(str(config.INDEX_PATH))
         known = json.loads(config.PATHS_PATH.read_text())
         new_paths = [p for p in all_paths if p not in set(known)]
@@ -76,20 +71,24 @@ def main():
 
     embedder = Embedder()
     print(f"Dispositivo: {embedder.device} | Imágenes a procesar: {len(new_paths)}")
-    loader = DataLoader(
-        ImageDataset(new_paths, embedder.preprocess),
-        batch_size=config.BATCH_SIZE,
-        num_workers=config.NUM_WORKERS,
-        shuffle=False,
-    )
+    vectors, valid_paths = [], []
+    batch_images, batch_paths = [], []
+    for rel in tqdm(new_paths, desc="Embeddings"):
+        img = load_image(rel)
+        if img is not None:
+            batch_images.append(img)
+            batch_paths.append(rel)
+        if len(batch_images) == config.BATCH_SIZE:
+            vectors.append(embedder.embed_image_batch(batch_images))
+            valid_paths.extend(batch_paths)
+            batch_images, batch_paths = [], []
 
-    vectors, valid_paths, cursor = [], [], 0
-    for batch, ok in tqdm(loader, desc="Embeddings"):
-        feats = embedder.embed_image_batch(batch)
-        ok = ok.numpy().astype(bool)
-        vectors.append(feats[ok])
-        valid_paths.extend(p for p, v in zip(new_paths[cursor:cursor + len(ok)], ok) if v)
-        cursor += len(ok)
+    if batch_images:
+        vectors.append(embedder.embed_image_batch(batch_images))
+        valid_paths.extend(batch_paths)
+
+    if not vectors:
+        raise SystemExit("No se encontraron imágenes válidas para indexar.")
 
     vectors = np.concatenate(vectors).astype("float32")
     if index is None:
@@ -98,6 +97,7 @@ def main():
 
     faiss.write_index(index, str(config.INDEX_PATH))
     config.PATHS_PATH.write_text(json.dumps(known + valid_paths))
+    config.MODEL_INFO_PATH.write_text(json.dumps({"model": config.EMBEDDING_MODEL}, indent=2))
     print(f"Listo. Total en el índice: {index.ntotal} imágenes.")
 
 
