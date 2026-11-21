@@ -7,12 +7,15 @@ __pycache__/
 .DS_Store
 
 # Datos pesados (se regeneran con los scripts)
-data/images/*
-data/thumbs/*
-data/index/*
-!data/images/.gitkeep
-!data/thumbs/.gitkeep
-!data/index/.gitkeep
+gemma/data/images/*
+gemma/data/thumbs/*
+gemma/data/index/*
+gemma/data/datasets/
+!gemma/data/images/.gitkeep
+!gemma/data/thumbs/.gitkeep
+!gemma/data/index/.gitkeep
 *.zip
 *.faiss
 *.npy
+openclip/img-busqueda/dataset_procesado/thumbs/*
+openclip/img-busqueda/dataset/
